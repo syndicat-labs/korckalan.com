@@ -514,6 +514,33 @@ ul{list-style:none}
   transition:background 0.18s,box-shadow 0.18s;
 }
 .form-submit:hover{background:var(--navy-lt);box-shadow:var(--shadow-lg)}
+.ff label .req{color:#b91c1c;font-weight:700}
+.ff label .opt{font-weight:500;letter-spacing:0.06em;opacity:0.75;text-transform:none}
+.ff__hint{font-size:0.72rem;color:var(--sub);line-height:1.6}
+.ff input[type="file"]{padding:0.6rem 0.9rem;cursor:pointer;font-size:0.8rem}
+.ff input[type="file"]::file-selector-button{
+  background:var(--navy);color:var(--white);border:none;border-radius:var(--rad-sm);
+  font-family:var(--f-display);font-weight:600;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;
+  padding:0.5rem 1rem;margin-right:0.8rem;cursor:pointer;
+}
+/* Contact-channel radio pills */
+.chan{display:flex;gap:0.5rem;flex-wrap:wrap}
+.chan__opt{flex:1 1 120px;position:relative;cursor:pointer;min-width:0}
+.chan__opt input{position:absolute;opacity:0;pointer-events:none}
+.chan__opt span{
+  display:flex;align-items:center;justify-content:center;gap:0.4rem;
+  background:var(--steel);border:1.5px solid var(--line);border-radius:var(--rad-sm);
+  font-family:var(--f-display);font-weight:600;font-size:0.78rem;letter-spacing:0.06em;text-transform:uppercase;
+  color:var(--sub);padding:0.65rem 0.5rem;transition:border-color 0.15s,background 0.15s,color 0.15s;
+  white-space:nowrap;
+}
+.chan__opt input:checked+span{background:var(--navy);border-color:var(--navy);color:var(--white)}
+.chan__opt input:focus-visible+span{box-shadow:0 0 0 3px rgba(0,51,102,0.25)}
+/* Photo previews */
+.photo-prev{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
+.photo-prev:empty{display:none}
+.photo-prev img{width:56px;height:56px;object-fit:cover;border-radius:var(--rad-sm);border:1px solid var(--line);flex-shrink:0}
+.photo-prev .more{font-size:0.72rem;color:var(--sub);font-weight:600}
 
 /* ═══════════════════════════════════════════
    LAYOUT
@@ -890,12 +917,17 @@ section,div,header,footer,nav{max-width:100%}
           <div class="contact-form-box__header-badge">Free</div>
         </div>
         <div class="contact-form-body">
-          <div class="ff"><label>Full Name</label><input type="text" name="name" placeholder="Your name" required></div>
-          <div class="ff"><label>Phone Number</label><input type="tel" name="phone" placeholder="+233 XX XXX XXXX" required></div>
-          <div class="ff"><label>Email Address</label><input type="email" name="email" placeholder="you@email.com" required></div>
-          <div class="ff"><label>Service Required</label>
-            <select name="service" required>
-              <option value="">Select a service…</option>
+          <div class="ff"><label>Describe the Job <span class="req">*</span></label><textarea name="message" placeholder="What's wrong? e.g. Burst pipe flooding the compound…" required></textarea>
+            <input type="file" id="photoInput" accept="image/*" multiple aria-label="Attach photos of the problem">
+            <div class="photo-prev" id="photoPrev"></div>
+            <p class="ff__hint">📎 Up to 5 photos (8MB each). They'll be listed in your message — just attach them when the chat or email opens.</p>
+          </div>
+          <div class="ff"><label>Full Name <span class="req">*</span></label><input type="text" name="name" placeholder="Your name" required></div>
+          <div class="ff"><label>Phone Number <span class="req">*</span></label><input type="tel" name="phone" placeholder="+233 XX XXX XXXX" required></div>
+          <div class="ff"><label>Location / Area <span class="req">*</span></label><input type="text" name="location" placeholder="e.g. Nkroful, Ellembelle, Kumasi…" required></div>
+          <div class="ff"><label>Service Required <span class="opt">(optional)</span></label>
+            <select name="service">
+              <option value="">Not sure — advise me…</option>
               <option>Emergency Repair</option>
               <option>Pipe Installation</option>
               <option>Drain &amp; Sewer</option>
@@ -905,10 +937,16 @@ section,div,header,footer,nav{max-width:100%}
               <option>Other</option>
             </select>
           </div>
-          <div class="ff"><label>Location / Area</label><input type="text" name="location" placeholder="e.g. Nkroful, Ellembelle, Kumasi…" required></div>
-          <div class="ff"><label>Describe the Job</label><textarea name="message" placeholder="Give us a brief description of the work needed…" required></textarea></div>
-          <button type="submit" class="form-submit" id="submitBtn">Submit Quote Request →</button>
-          <p style="font-size:0.72rem;color:var(--sub);text-align:center;">We respond within 2 hours on business days.</p>
+          <div class="ff"><label>Email Address <span class="opt">(optional)</span></label><input type="email" name="email" placeholder="you@email.com"></div>
+          <div class="ff"><label>How should we reply?</label>
+            <div class="chan" role="radiogroup" aria-label="Preferred contact method">
+              <label class="chan__opt"><input type="radio" name="channel" value="whatsapp" checked><span>💬 WhatsApp</span></label>
+              <label class="chan__opt"><input type="radio" name="channel" value="email"><span>✉️ Email</span></label>
+              <label class="chan__opt"><input type="radio" name="channel" value="call"><span>📞 Call me</span></label>
+            </div>
+          </div>
+          <button type="submit" class="form-submit" id="submitBtn">Send via WhatsApp →</button>
+          <p style="font-size:0.72rem;color:var(--sub);text-align:center;">No account needed — your request opens ready to send.</p>
         </div>
       </div>
     </div>
@@ -992,60 +1030,102 @@ document.querySelectorAll('[data-service]').forEach(a => {
   });
 });
 
-/* ── FORM ── */
-document.getElementById('submitBtn').addEventListener('click', function(e) {
+/* ── QUOTE FORM: WhatsApp / Email / Call ── */
+const WA_NUMBER = '233557835608';
+const BIZ_EMAIL = 'korckalanbright12@gmail.com';
+const CALL_NUMBER = '+233557835608';
+const CHAN_LABEL = { whatsapp: 'Send via WhatsApp →', email: 'Send via Email →', call: 'Call Now →' };
+const currentChannel = () => (document.querySelector('input[name="channel"]:checked') || {}).value || 'whatsapp';
+const submitBtn = document.getElementById('submitBtn');
+const photoInput = document.getElementById('photoInput');
+const photoPrev = document.getElementById('photoPrev');
+let photoFiles = [];
+
+document.querySelectorAll('input[name="channel"]').forEach(r => {
+  r.addEventListener('change', () => { submitBtn.textContent = CHAN_LABEL[currentChannel()]; });
+});
+
+/* Photo picker: images only, max 5, max 8MB each + thumbnails */
+photoInput.addEventListener('change', () => {
+  photoFiles = Array.from(photoInput.files || [])
+    .filter(f => f.type.startsWith('image/') && f.size <= 8 * 1024 * 1024)
+    .slice(0, 5);
+  photoPrev.innerHTML = '';
+  photoFiles.slice(0, 4).forEach(f => {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    img.alt = f.name;
+    photoPrev.appendChild(img);
+  });
+  if (photoFiles.length > 4) {
+    const more = document.createElement('span');
+    more.className = 'more';
+    more.textContent = '+' + (photoFiles.length - 4) + ' more';
+    photoPrev.appendChild(more);
+  }
+});
+
+submitBtn.addEventListener('click', function(e) {
   e.preventDefault();
   const btn = this;
-  const form = btn.closest('form') || btn.closest('.contact-form-body').parentElement;
-
-  // Collect form data
-  const formData = new FormData(form);
+  const box = btn.closest('.contact-form-body');
+  const val = n => (box.querySelector(`[name="${n}"]`).value || '').trim();
   const data = {
-    name: formData.get('name'),
-    phone: formData.get('phone'),
-    email: formData.get('email'),
-    service: formData.get('service'),
-    location: formData.get('location'),
-    message: formData.get('message')
+    message: val('message'), name: val('name'), phone: val('phone'),
+    location: val('location'), service: val('service'), email: val('email')
   };
+  const resetBtn = () => { btn.textContent = CHAN_LABEL[currentChannel()]; btn.style.background = ''; btn.disabled = false; };
 
-  // Validate
-  if (!data.name || !data.phone || !data.email || !data.service || !data.location || !data.message) {
-    btn.textContent = '⚠ Please fill all fields';
+  // Validate required fields
+  const missing = [];
+  if (!data.message) missing.push('job description');
+  if (!data.name) missing.push('name');
+  if (!data.phone) missing.push('phone');
+  else if ((data.phone.replace(/\D/g, '')).length < 7) missing.push('valid phone');
+  if (!data.location) missing.push('location');
+  if (missing.length) {
+    btn.textContent = '⚠ Please add: ' + missing.join(', ');
     btn.style.background = '#d97706';
-    setTimeout(() => { btn.textContent = 'Submit Quote Request →'; btn.style.background = ''; }, 3000);
+    setTimeout(resetBtn, 3000);
     return;
   }
 
-  // Send to email
-  btn.textContent = 'Sending...';
-  btn.disabled = true;
+  // Build template message (wa.me / mailto can't carry attachments,
+  // so photos are listed by name for the client to attach in the chat)
+  const lines = [
+    '🔧 QUOTE REQUEST — KorckAlan Plumbing Works',
+    '--------------------------',
+    '📝 Problem:',
+    data.message
+  ];
+  if (photoFiles.length) {
+    lines.push('📎 Photos (' + photoFiles.length + ') — I will attach them here: ' + photoFiles.map(f => f.name).join(', '));
+  }
+  lines.push('👤 Name: ' + data.name, '📞 Phone: ' + data.phone, '📍 Area: ' + data.location);
+  if (data.service) lines.push('🛠️ Service: ' + data.service);
+  if (data.email) lines.push('✉️ Email: ' + data.email);
+  const msg = lines.join('\n');
+  const channel = currentChannel();
 
-  fetch('https://formspree.io/f/xyzpqwer', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  .then(response => {
-    if (response.ok) {
-      btn.textContent = '✓ Request Submitted — We\'ll Call You Shortly';
-      btn.style.background = '#1a6b3c';
-      form.reset();
-      setTimeout(() => {
-        btn.textContent = 'Submit Quote Request →';
-        btn.style.background = '';
-        btn.disabled = false;
-      }, 4500);
-    } else {
-      throw new Error('Failed to submit');
-    }
-  })
-  .catch(error => {
-    btn.textContent = '✗ Something went wrong, please try again';
-    btn.style.background = '#dc2626';
-    btn.disabled = false;
-    setTimeout(() => { btn.textContent = 'Submit Quote Request →'; btn.style.background = ''; }, 3000);
-  });
+  if (channel === 'whatsapp') {
+    window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+    btn.textContent = '✓ Opening WhatsApp — attach your photos there';
+    btn.style.background = '#1a6b3c';
+    setTimeout(resetBtn, 4500);
+  } else if (channel === 'email') {
+    const subject = 'Quote Request — ' + data.name + ' (' + data.location + ')';
+    window.location.href = 'mailto:' + BIZ_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(msg);
+    btn.textContent = '✓ Opening your email app…';
+    btn.style.background = '#1a6b3c';
+    setTimeout(resetBtn, 4500);
+  } else {
+    const summary = data.name + ' | ' + data.phone + ' | ' + data.location + ' | ' + data.message.slice(0, 120);
+    if (navigator.clipboard) navigator.clipboard.writeText(summary).catch(() => {});
+    window.location.href = 'tel:' + CALL_NUMBER;
+    btn.textContent = '✓ Opening dialer — details copied';
+    btn.style.background = '#1a6b3c';
+    setTimeout(resetBtn, 4500);
+  }
 });
 </script>
 </body>
