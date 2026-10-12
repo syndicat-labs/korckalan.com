@@ -80,6 +80,17 @@ ul{list-style:none}
 .av img{position:absolute;inset:0;z-index:1;border-radius:50%;width:100%;height:100%;object-fit:cover}
 
 /* ═══════════════════════════════════════════
+   INLINE ICONS — self-hosted SVG sprite, zero requests
+   Usage: <svg class="ic"><use href="#i-phone"/></svg>
+   ═══════════════════════════════════════════ */
+.ic{
+  width:1.1em;height:1.1em;flex-shrink:0;vertical-align:-0.15em;
+  fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+}
+.c-detail__icon .ic{width:20px;height:20px}
+.why-item__icon .ic{width:22px;height:22px}
+
+/* ═══════════════════════════════════════════
    LOGO MARK
 ═══════════════════════════════════════════ */
 .logo{display:flex;align-items:center;gap:0.6rem;min-width:0;flex-shrink:1}
@@ -594,6 +605,20 @@ section,div,header,footer,nav{max-width:100%}
 </head>
 <body>
 
+<!-- ════════════ INLINE ICON SET (self-hosted, no requests) ════════════ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+  </defs>
+</svg>
+
 <!-- ════════════ NAVBAR ════════════ -->
 <nav class="nav" id="mainNav">
   <div class="nav__inner">
@@ -649,7 +674,7 @@ section,div,header,footer,nav{max-width:100%}
     <p class="hero__sub">KorckAlan Plumbing Works delivers certified, industrial-grade plumbing solutions for residential and commercial clients throughout Western Region and beyond.</p>
     <div class="hero__actions">
       <a href="#contact" class="btn-yellow">Request a Quote</a>
-      <a href="tel:+233557835608" class="btn-outline-white">📞 +233 55 783 5608</a>
+      <a href="tel:+233557835608" class="btn-outline-white"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg> +233 55 783 5608</a>
     </div>
     <div class="hero__stats">
       <div class="hero__stat"><div class="hero__stat-num">7+</div><div class="hero__stat-label">Years in Ghana</div></div>
@@ -844,10 +869,10 @@ section,div,header,footer,nav{max-width:100%}
           Founded by master plumber Alan Bright in 2006, KorckAlan Plumbing Works has grown from a one-man team in Esiama to one of Ghana's most recognised plumbing contractors. Every job is held to the standards of excellence and our own exacting internal devotion to providing the best plumbing service in Ellembelle and beyond.
         </p>
         <div class="why-grid">
-          <div class="why-item"><div class="why-item__icon">📋</div><div><div class="why-item__title">GSA Compliant</div><div class="why-item__desc">All work meets Ghana Standards Authority specifications.</div></div></div>
-          <div class="why-item"><div class="why-item__icon">🛡️</div><div><div class="why-item__title">6-month Warranty</div><div class="why-item__desc">Every installation covered by a 24-month labour guarantee.</div></div></div>
-          <div class="why-item"><div class="why-item__icon">💬</div><div><div class="why-item__title">Written Quotes</div><div class="why-item__desc">Full cost breakdown before any work begins. No surprises.</div></div></div>
-          <div class="why-item"><div class="why-item__icon">⚡</div><div><div class="why-item__title">Fast Response</div><div class="why-item__desc">Emergency team deployed within 60 minutes across Western Region.</div></div></div>
+          <div class="why-item"><div class="why-item__icon"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg></div><div><div class="why-item__title">GSA Compliant</div><div class="why-item__desc">All work meets Ghana Standards Authority specifications.</div></div></div>
+          <div class="why-item"><div class="why-item__icon"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg></div><div><div class="why-item__title">6-month Warranty</div><div class="why-item__desc">Every installation covered by a 24-month labour guarantee.</div></div></div>
+          <div class="why-item"><div class="why-item__icon"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></div><div><div class="why-item__title">Written Quotes</div><div class="why-item__desc">Full cost breakdown before any work begins. No surprises.</div></div></div>
+          <div class="why-item"><div class="why-item__icon"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg></div><div><div class="why-item__title">Fast Response</div><div class="why-item__desc">Emergency team deployed within 60 minutes across Western Region.</div></div></div>
         </div>
       </div>
     </div>
@@ -898,10 +923,10 @@ section,div,header,footer,nav{max-width:100%}
         <div class="sec-label">Contact Us</div>
         <h2 class="contact-sidebar__title">Get a <span>Quote</span><br>Today.</h2>
         <p class="contact-sidebar__sub">We respond within 2 hours during business hours. Emergency line answered 24/7.</p>
-        <div class="c-detail"><div class="c-detail__icon">📞</div><div><div class="c-detail__cap">Phone · WhatsApp</div><div class="c-detail__val"><a href="https://wa.me/233557835608" target="_blank" rel="noopener">+233 55 783 5608</a></div></div></div>
-        <div class="c-detail"><div class="c-detail__icon">✉️</div><div><div class="c-detail__cap">Email</div><div class="c-detail__val"><a href="mailto:korckalanbright12@gmail.com">korckalanbright12@gmail.com</a></div></div></div>
-        <div class="c-detail"><div class="c-detail__icon">📍</div><div><div class="c-detail__cap">Location</div><div class="c-detail__val">Esiama, Western Region, Ghana</div></div></div>
-        <div class="c-detail"><div class="c-detail__icon">⏰</div><div><div class="c-detail__cap">Business Hours</div><div class="c-detail__val">Mon–Sat 7am–6pm · Emergency 24/7</div></div></div>
+        <div class="c-detail"><div class="c-detail__icon"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg></div><div><div class="c-detail__cap">Phone · WhatsApp</div><div class="c-detail__val"><a href="https://wa.me/233557835608" target="_blank" rel="noopener">+233 55 783 5608</a></div></div></div>
+        <div class="c-detail"><div class="c-detail__icon"><svg class="ic" aria-hidden="true"><use href="#i-mail"/></svg></div><div><div class="c-detail__cap">Email</div><div class="c-detail__val"><a href="mailto:korckalanbright12@gmail.com">korckalanbright12@gmail.com</a></div></div></div>
+        <div class="c-detail"><div class="c-detail__icon"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg></div><div><div class="c-detail__cap">Location</div><div class="c-detail__val">Esiama, Western Region, Ghana</div></div></div>
+        <div class="c-detail"><div class="c-detail__icon"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg></div><div><div class="c-detail__cap">Business Hours</div><div class="c-detail__val">Mon–Sat 7am–6pm · Emergency 24/7</div></div></div>
         <!--
           ★ IMAGE SLOT: Van / Team / Company Photo
           Recommended: service van or team on site
@@ -920,7 +945,7 @@ section,div,header,footer,nav{max-width:100%}
           <div class="ff"><label>Describe the Job <span class="req">*</span></label><textarea name="message" placeholder="What's wrong? e.g. Burst pipe flooding the compound…" required></textarea>
             <input type="file" id="photoInput" accept="image/*" multiple aria-label="Attach photos of the problem">
             <div class="photo-prev" id="photoPrev"></div>
-            <p class="ff__hint">📎 Up to 5 photos (8MB each). They'll be listed in your message — just attach them when the chat or email opens.</p>
+            <p class="ff__hint">Up to 5 photos (8MB each). They'll be listed in your message — just attach them when the chat or email opens.</p>
           </div>
           <div class="ff"><label>Full Name <span class="req">*</span></label><input type="text" name="name" placeholder="Your name" required></div>
           <div class="ff"><label>Phone Number <span class="req">*</span></label><input type="tel" name="phone" placeholder="+233 XX XXX XXXX" required></div>
@@ -940,9 +965,9 @@ section,div,header,footer,nav{max-width:100%}
           <div class="ff"><label>Email Address <span class="opt">(optional)</span></label><input type="email" name="email" placeholder="you@email.com"></div>
           <div class="ff"><label>How should we reply?</label>
             <div class="chan" role="radiogroup" aria-label="Preferred contact method">
-              <label class="chan__opt"><input type="radio" name="channel" value="whatsapp" checked><span>💬 WhatsApp</span></label>
-              <label class="chan__opt"><input type="radio" name="channel" value="email"><span>✉️ Email</span></label>
-              <label class="chan__opt"><input type="radio" name="channel" value="call"><span>📞 Call me</span></label>
+              <label class="chan__opt"><input type="radio" name="channel" value="whatsapp" checked><span><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg>WhatsApp</span></label>
+              <label class="chan__opt"><input type="radio" name="channel" value="email"><span><svg class="ic" aria-hidden="true"><use href="#i-mail"/></svg>Email</span></label>
+              <label class="chan__opt"><input type="radio" name="channel" value="call"><span><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg>Call me</span></label>
             </div>
           </div>
           <button type="submit" class="form-submit" id="submitBtn">Send via WhatsApp →</button>
@@ -1084,7 +1109,7 @@ submitBtn.addEventListener('click', function(e) {
   else if ((data.phone.replace(/\D/g, '')).length < 7) missing.push('valid phone');
   if (!data.location) missing.push('location');
   if (missing.length) {
-    btn.textContent = '⚠ Please add: ' + missing.join(', ');
+    btn.textContent = 'Please add: ' + missing.join(', ');
     btn.style.background = '#d97706';
     setTimeout(resetBtn, 3000);
     return;
@@ -1093,17 +1118,17 @@ submitBtn.addEventListener('click', function(e) {
   // Build template message (wa.me / mailto can't carry attachments,
   // so photos are listed by name for the client to attach in the chat)
   const lines = [
-    '🔧 QUOTE REQUEST — KorckAlan Plumbing Works',
+    'QUOTE REQUEST - KorckAlan Plumbing Works',
     '--------------------------',
-    '📝 Problem:',
+    'Problem:',
     data.message
   ];
   if (photoFiles.length) {
-    lines.push('📎 Photos (' + photoFiles.length + ') — I will attach them here: ' + photoFiles.map(f => f.name).join(', '));
+    lines.push('Photos (' + photoFiles.length + ') - I will attach them here: ' + photoFiles.map(f => f.name).join(', '));
   }
-  lines.push('👤 Name: ' + data.name, '📞 Phone: ' + data.phone, '📍 Area: ' + data.location);
-  if (data.service) lines.push('🛠️ Service: ' + data.service);
-  if (data.email) lines.push('✉️ Email: ' + data.email);
+  lines.push('Name: ' + data.name, 'Phone: ' + data.phone, 'Area: ' + data.location);
+  if (data.service) lines.push('Service: ' + data.service);
+  if (data.email) lines.push('Email: ' + data.email);
   const msg = lines.join('\n');
   const channel = currentChannel();
 
