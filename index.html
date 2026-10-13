@@ -1014,7 +1014,7 @@ section,div,header,footer,nav{max-width:100%}
           <div class="ff"><label>Describe the Job</label><textarea name="message" placeholder="What's wrong? e.g. Burst pipe flooding the compound…"></textarea>
             <input type="file" id="photoInput" accept="image/*" multiple aria-label="Attach photos of the problem">
             <div class="photo-prev" id="photoPrev"></div>
-            <p class="ff__hint">Up to 5 photos (8MB each). They'll be listed in your message — just attach them when the chat or email opens.</p>
+            <p class="ff__hint">Up to 5 photos (8MB each). They upload securely and arrive as links in your message.</p>
           </div>
           <div class="ff"><label>Full Name</label><input type="text" name="name" placeholder="Your name"></div>
           <div class="ff"><label>Phone Number</label><input type="tel" name="phone" placeholder="+233 XX XXX XXXX"></div>
@@ -1159,7 +1159,38 @@ photoInput.addEventListener('change', () => {
   }
 });
 
-submitBtn.addEventListener('click', function(e) {
+/* Shrink to max 1600px JPEG so uploads stay fast on mobile networks */
+function compressPhoto(file) {
+  return createImageBitmap(file).then(bmp => {
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * scale));
+    const h = Math.max(1, Math.round(bmp.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    return new Promise(res => {
+      canvas.toBlob(
+        b => res(b ? new File([b], file.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg', { type: 'image/jpeg' }) : file),
+        'image/jpeg', 0.82
+      );
+    });
+  }).catch(() => file);
+}
+
+/* POST picked photos to the site API (R2). Returns [{name,url}] with
+   absolute URLs, or throws — callers fall back to filenames, never block. */
+async function uploadPhotos(files) {
+  const compressed = await Promise.all(files.map(compressPhoto));
+  const fd = new FormData();
+  compressed.forEach(f => fd.append('photos', f, f.name));
+  const r = await fetch('/api/upload', { method: 'POST', body: fd });
+  if (!r.ok) throw new Error('upload failed: ' + r.status);
+  const data = await r.json();
+  if (!data.files || !data.files.length) throw new Error('upload empty');
+  return data.files.map(f => ({ name: f.name, url: new URL(f.url, location.origin).href }));
+}
+
+submitBtn.addEventListener('click', async function(e) {
   e.preventDefault();
   const btn = this;
   const box = btn.closest('.contact-form-body');
@@ -1174,26 +1205,42 @@ submitBtn.addEventListener('click', function(e) {
   // template (missing fields render as —). Call needs no form at all.
   const orDash = v => v || '—';
 
-  // Build template message (wa.me / mailto can't carry attachments,
-  // so photos are listed by name for the client to attach in the chat)
+  const channel = currentChannel();
+
+  // Deliver photos first (skip for plain calls): upload to site storage so
+  // the template carries real view-links — wa.me / mailto are text-only and
+  // can't attach files. Any failure falls back to filenames, never blocks.
+  let photoLinks = [];
+  if (photoFiles.length && channel !== 'call') {
+    btn.textContent = 'Uploading photos…';
+    btn.disabled = true;
+    try {
+      photoLinks = await uploadPhotos(photoFiles);
+    } catch (err) {
+      photoLinks = [];
+    }
+    btn.disabled = false;
+  }
+
+  // Build template message
   const lines = [
     'QUOTE REQUEST - KorckAlan Plumbing Works',
     '--------------------------',
-    'Problem:',
-    orDash(data.message)
+    'Issue: ' + orDash(data.message)
   ];
-  if (photoFiles.length) {
-    lines.push('Photos (' + photoFiles.length + ') - I will attach them here: ' + photoFiles.map(f => f.name).join(', '));
+  if (photoLinks.length) {
+    lines.push('Photos: ' + photoLinks.map(f => f.url).join(', '));
+  } else if (photoFiles.length) {
+    lines.push('Photos (' + photoFiles.length + ') - to follow: ' + photoFiles.map(f => f.name).join(', '));
   }
   lines.push('Name: ' + orDash(data.name), 'Phone: ' + orDash(data.phone), 'Area: ' + orDash(data.location));
   if (data.service) lines.push('Service: ' + data.service);
   if (data.email) lines.push('Email: ' + data.email);
   const msg = lines.join('\n');
-  const channel = currentChannel();
 
   if (channel === 'whatsapp') {
     window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
-    btn.textContent = photoFiles.length ? '✓ Opening WhatsApp — attach your photos there' : '✓ Opening WhatsApp…';
+    btn.textContent = photoLinks.length ? '✓ Opening WhatsApp — photos linked inside' : '✓ Opening WhatsApp…';
     btn.style.background = '#1a6b3c';
     setTimeout(resetBtn, 4500);
   } else if (channel === 'email') {
