@@ -1177,12 +1177,11 @@ function compressPhoto(file) {
   }).catch(() => file);
 }
 
-/* POST picked photos to the site API (R2). Returns [{name,url}] with
-   absolute URLs, or throws — callers fall back to filenames, never block. */
-async function uploadPhotos(files) {
-  const compressed = await Promise.all(files.map(compressPhoto));
+/* POST already-compressed blobs to the site API (R2). Returns
+   [{name,url}] with absolute URLs, or throws — callers fall back, never block. */
+async function uploadBlobs(blobs) {
   const fd = new FormData();
-  compressed.forEach(f => fd.append('photos', f, f.name));
+  blobs.forEach(f => fd.append('photos', f, f.name));
   const r = await fetch('/api/upload', { method: 'POST', body: fd });
   if (!r.ok) throw new Error('upload failed: ' + r.status);
   const data = await r.json();
@@ -1211,11 +1210,13 @@ submitBtn.addEventListener('click', async function(e) {
   // the template carries real view-links — wa.me / mailto are text-only and
   // can't attach files. Any failure falls back to filenames, never blocks.
   let photoLinks = [];
+  let compressedBlobs = [];
   if (photoFiles.length && channel !== 'call') {
     btn.textContent = 'Uploading photos…';
     btn.disabled = true;
     try {
-      photoLinks = await uploadPhotos(photoFiles);
+      compressedBlobs = await Promise.all(photoFiles.map(compressPhoto));
+      photoLinks = await uploadBlobs(compressedBlobs);
     } catch (err) {
       photoLinks = [];
     }
@@ -1239,14 +1240,45 @@ submitBtn.addEventListener('click', async function(e) {
   const msg = lines.join('\n');
 
   if (channel === 'whatsapp') {
-    window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
-    btn.textContent = photoLinks.length ? '✓ Opening WhatsApp — photos linked inside' : '✓ Opening WhatsApp…';
+    // Prefer the native share sheet: photos + text arrive as real WhatsApp
+    // images. Falls back to the wa.me link (with R2 links) when unsupported.
+    let shared = false;
+    if (compressedBlobs.length && navigator.canShare) {
+      try {
+        const shareFiles = compressedBlobs.map((b, i) => new File([b], b.name || ('photo-' + (i + 1) + '.jpg'), { type: b.type || 'image/jpeg' }));
+        if (navigator.canShare({ files: shareFiles })) {
+          await navigator.share({ files: shareFiles, text: msg });
+          shared = true;
+        }
+      } catch (err) { shared = false; }
+    }
+    if (!shared) {
+      window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+    }
+    btn.textContent = shared ? '✓ Shared — pick WhatsApp to send' : (photoLinks.length ? '✓ Opening WhatsApp — photos linked inside' : '✓ Opening WhatsApp…');
     btn.style.background = '#1a6b3c';
     setTimeout(resetBtn, 4500);
   } else if (channel === 'email') {
-    const subject = 'Quote Request' + (data.name ? ' — ' + data.name : '') + (data.location ? ' (' + data.location + ')' : '');
-    window.location.href = 'mailto:' + BIZ_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(msg);
-    btn.textContent = '✓ Opening your email app…';
+    // Prefer backend delivery: a real email with the photos attached.
+    // Falls back to a mailto draft when the backend is unreachable.
+    const keys = photoLinks.map(f => { try { return new URL(f.url).searchParams.get('k'); } catch (e) { return null; } }).filter(Boolean);
+    let emailed = false;
+    btn.textContent = 'Sending email…';
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/send-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: data.message, name: data.name, phone: data.phone, location: data.location, service: data.service, email: data.email, photoKeys: keys })
+      });
+      emailed = r.ok && (await r.json()).sent === true;
+    } catch (err) { emailed = false; }
+    btn.disabled = false;
+    if (!emailed) {
+      const subject = 'Quote Request' + (data.name ? ' — ' + data.name : '') + (data.location ? ' (' + data.location + ')' : '');
+      window.location.href = 'mailto:' + BIZ_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(msg);
+    }
+    btn.textContent = emailed ? ('✓ Quote emailed' + (keys.length ? ' with ' + keys.length + ' photo(s)' : '')) : '✓ Opening your email app…';
     btn.style.background = '#1a6b3c';
     setTimeout(resetBtn, 4500);
   } else {
