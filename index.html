@@ -1206,54 +1206,68 @@ submitBtn.addEventListener('click', async function(e) {
 
   const channel = currentChannel();
 
-  // Deliver photos first (skip for plain calls): upload to site storage so
-  // the template carries real view-links — wa.me / mailto are text-only and
-  // can't attach files. Any failure falls back to filenames, never blocks.
+  // R2 upload is fallback-only: WhatsApp tries the native share sheet first
+  // (instant, no upload). Uploads back the wa.me / Email fallbacks with
+  // view-links, and archive photos for the parked email backend.
+  // Any failure degrades to filenames — never blocks the quote.
   let photoLinks = [];
   let compressedBlobs = [];
-  if (photoFiles.length && channel !== 'call') {
+  async function ensureCompressed() {
+    if (!compressedBlobs.length && photoFiles.length) {
+      try { compressedBlobs = await Promise.all(photoFiles.map(compressPhoto)); }
+      catch (err) { compressedBlobs = []; }
+    }
+    return compressedBlobs;
+  }
+  async function ensureUpload() {
+    if (photoLinks.length || !photoFiles.length) return;
+    await ensureCompressed();
+    if (!compressedBlobs.length) return;
     btn.textContent = 'Uploading photos…';
     btn.disabled = true;
-    try {
-      compressedBlobs = await Promise.all(photoFiles.map(compressPhoto));
-      photoLinks = await uploadBlobs(compressedBlobs);
-    } catch (err) {
-      photoLinks = [];
-    }
+    try { photoLinks = await uploadBlobs(compressedBlobs); }
+    catch (err) { photoLinks = []; }
     btn.disabled = false;
   }
 
-  // Build template message
-  const lines = [
-    'QUOTE REQUEST - KorckAlan Plumbing Works',
-    '--------------------------',
-    'Issue: ' + orDash(data.message)
-  ];
-  if (photoLinks.length) {
-    lines.push('Photos: ' + photoLinks.map(f => f.url).join(', '));
-  } else if (photoFiles.length) {
-    lines.push('Photos (' + photoFiles.length + ') - to follow: ' + photoFiles.map(f => f.name).join(', '));
-  }
-  lines.push('Name: ' + orDash(data.name), 'Phone: ' + orDash(data.phone), 'Area: ' + orDash(data.location));
-  if (data.service) lines.push('Service: ' + data.service);
-  if (data.email) lines.push('Email: ' + data.email);
-  const msg = lines.join('\n');
+  // Build template message (wa.me / mailto are text-only and can't attach
+  // files — photos travel as R2 links, or filenames if upload failed).
+  const buildMsg = () => {
+    const lines = [
+      'QUOTE REQUEST - KorckAlan Plumbing Works',
+      '--------------------------',
+      'Issue: ' + orDash(data.message)
+    ];
+    if (photoLinks.length) {
+      lines.push('Photos: ' + photoLinks.map(f => f.url).join(', '));
+    } else if (photoFiles.length) {
+      lines.push('Photos (' + photoFiles.length + ') - to follow: ' + photoFiles.map(f => f.name).join(', '));
+    }
+    lines.push('Name: ' + orDash(data.name), 'Phone: ' + orDash(data.phone), 'Area: ' + orDash(data.location));
+    if (data.service) lines.push('Service: ' + data.service);
+    if (data.email) lines.push('Email: ' + data.email);
+    return lines.join('\n');
+  };
 
   if (channel === 'whatsapp') {
     // Prefer the native share sheet: photos + text arrive as real WhatsApp
-    // images. Falls back to the wa.me link (with R2 links) when unsupported.
+    // images with no upload wait. Falls back to wa.me (with R2 links).
     let shared = false;
-    if (compressedBlobs.length && navigator.canShare) {
-      try {
-        const shareFiles = compressedBlobs.map((b, i) => new File([b], b.name || ('photo-' + (i + 1) + '.jpg'), { type: b.type || 'image/jpeg' }));
-        if (navigator.canShare({ files: shareFiles })) {
-          await navigator.share({ files: shareFiles, text: msg });
-          shared = true;
-        }
-      } catch (err) { shared = false; }
+    if (photoFiles.length && navigator.canShare) {
+      await ensureCompressed();
+      if (compressedBlobs.length) {
+        try {
+          const shareFiles = compressedBlobs.map((b, i) => new File([b], b.name || ('photo-' + (i + 1) + '.jpg'), { type: b.type || 'image/jpeg' }));
+          if (navigator.canShare({ files: shareFiles })) {
+            await navigator.share({ files: shareFiles, text: buildMsg() });
+            shared = true;
+          }
+        } catch (err) { shared = false; }
+      }
     }
     if (!shared) {
-      window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+      await ensureUpload();
+      window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(buildMsg()), '_blank', 'noopener');
     }
     btn.textContent = shared ? '✓ Shared — pick WhatsApp to send' : (photoLinks.length ? '✓ Opening WhatsApp — photos linked inside' : '✓ Opening WhatsApp…');
     btn.style.background = '#1a6b3c';
@@ -1261,6 +1275,8 @@ submitBtn.addEventListener('click', async function(e) {
   } else if (channel === 'email') {
     // Direct mailto draft (backend email parked until Email Service is on).
     // Photos travel as R2 links inside the message body.
+    await ensureUpload();
+    const msg = buildMsg();
     const subject = 'Quote Request' + (data.name ? ' — ' + data.name : '') + (data.location ? ' (' + data.location + ')' : '');
     window.location.href = 'mailto:' + BIZ_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(msg);
     btn.textContent = '✓ Opening your email app…';
