@@ -1259,26 +1259,11 @@ submitBtn.addEventListener('click', async function(e) {
     btn.style.background = '#1a6b3c';
     setTimeout(resetBtn, 4500);
   } else if (channel === 'email') {
-    // Prefer backend delivery: a real email with the photos attached.
-    // Falls back to a mailto draft when the backend is unreachable.
-    const keys = photoLinks.map(f => { try { return new URL(f.url).searchParams.get('k'); } catch (e) { return null; } }).filter(Boolean);
-    let emailed = false;
-    btn.textContent = 'Sending email…';
-    btn.disabled = true;
-    try {
-      const r = await fetch('/api/send-quote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: data.message, name: data.name, phone: data.phone, location: data.location, service: data.service, email: data.email, photoKeys: keys })
-      });
-      emailed = r.ok && (await r.json()).sent === true;
-    } catch (err) { emailed = false; }
-    btn.disabled = false;
-    if (!emailed) {
-      const subject = 'Quote Request' + (data.name ? ' — ' + data.name : '') + (data.location ? ' (' + data.location + ')' : '');
-      window.location.href = 'mailto:' + BIZ_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(msg);
-    }
-    btn.textContent = emailed ? ('✓ Quote emailed' + (keys.length ? ' with ' + keys.length + ' photo(s)' : '')) : '✓ Opening your email app…';
+    // Direct mailto draft (backend email parked until Email Service is on).
+    // Photos travel as R2 links inside the message body.
+    const subject = 'Quote Request' + (data.name ? ' — ' + data.name : '') + (data.location ? ' (' + data.location + ')' : '');
+    window.location.href = 'mailto:' + BIZ_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(msg);
+    btn.textContent = '✓ Opening your email app…';
     btn.style.background = '#1a6b3c';
     setTimeout(resetBtn, 4500);
   } else {
