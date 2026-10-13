@@ -583,12 +583,6 @@ ul{list-style:none}
 }
 .form-submit:hover{background:var(--navy-lt);box-shadow:var(--shadow-lg)}
 .ff__hint{font-size:0.72rem;color:var(--sub);line-height:1.6}
-.ff input[type="file"]{padding:0.6rem 0.9rem;cursor:pointer;font-size:0.8rem}
-.ff input[type="file"]::file-selector-button{
-  background:var(--navy);color:var(--white);border:none;border-radius:var(--rad-sm);
-  font-family:var(--f-display);font-weight:600;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;
-  padding:0.5rem 1rem;margin-right:0.8rem;cursor:pointer;
-}
 /* Contact-channel radio pills */
 .chan{display:flex;gap:0.5rem;flex-wrap:wrap}
 .chan__opt{flex:1 1 120px;position:relative;cursor:pointer;min-width:0}
@@ -602,11 +596,6 @@ ul{list-style:none}
 }
 .chan__opt input:checked+span{background:var(--navy);border-color:var(--navy);color:var(--white)}
 .chan__opt input:focus-visible+span{box-shadow:0 0 0 3px rgba(0,51,102,0.25)}
-/* Photo previews */
-.photo-prev{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
-.photo-prev:empty{display:none}
-.photo-prev img{width:56px;height:56px;object-fit:cover;border-radius:var(--rad-sm);border:1px solid var(--line);flex-shrink:0}
-.photo-prev .more{font-size:0.72rem;color:var(--sub);font-weight:600}
 
 /* ═══════════════════════════════════════════
    LAYOUT
@@ -1012,9 +1001,7 @@ section,div,header,footer,nav{max-width:100%}
         </div>
         <div class="contact-form-body">
           <div class="ff"><label>Describe the Job</label><textarea name="message" placeholder="What's wrong? e.g. Burst pipe flooding the compound…"></textarea>
-            <input type="file" id="photoInput" accept="image/*" multiple aria-label="Attach photos of the problem">
-            <div class="photo-prev" id="photoPrev"></div>
-            <p class="ff__hint">Up to 5 photos (8MB each). They upload securely and arrive as links in your message.</p>
+            <p class="ff__hint">Have photos of the problem? After the chat opens, attach them with the clip button.</p>
           </div>
           <div class="ff"><label>Full Name</label><input type="text" name="name" placeholder="Your name"></div>
           <div class="ff"><label>Phone Number</label><input type="tel" name="phone" placeholder="+233 XX XXX XXXX"></div>
@@ -1124,72 +1111,19 @@ document.querySelectorAll('[data-service]').forEach(a => {
   });
 });
 
-/* ── QUOTE FORM: WhatsApp / Email / Call ── */
+/* ── QUOTE FORM: WhatsApp (wa.me-direct) / Email / Call ── */
 const WA_NUMBER = '233557835608';
 const BIZ_EMAIL = 'korckalanbright12@gmail.com';
 const CALL_NUMBER = '+233557835608';
 const CHAN_LABEL = { whatsapp: 'Send via WhatsApp →', email: 'Send via Email →', call: 'Call Now →' };
 const currentChannel = () => (document.querySelector('input[name="channel"]:checked') || {}).value || 'whatsapp';
 const submitBtn = document.getElementById('submitBtn');
-const photoInput = document.getElementById('photoInput');
-const photoPrev = document.getElementById('photoPrev');
-let photoFiles = [];
 
 document.querySelectorAll('input[name="channel"]').forEach(r => {
   r.addEventListener('change', () => { submitBtn.textContent = CHAN_LABEL[currentChannel()]; });
 });
 
-/* Photo picker: images only, max 5, max 8MB each + thumbnails */
-photoInput.addEventListener('change', () => {
-  photoFiles = Array.from(photoInput.files || [])
-    .filter(f => f.type.startsWith('image/') && f.size <= 8 * 1024 * 1024)
-    .slice(0, 5);
-  photoPrev.innerHTML = '';
-  photoFiles.slice(0, 4).forEach(f => {
-    const img = document.createElement('img');
-    img.src = URL.createObjectURL(f);
-    img.alt = f.name;
-    photoPrev.appendChild(img);
-  });
-  if (photoFiles.length > 4) {
-    const more = document.createElement('span');
-    more.className = 'more';
-    more.textContent = '+' + (photoFiles.length - 4) + ' more';
-    photoPrev.appendChild(more);
-  }
-});
-
-/* Shrink to max 1600px JPEG so uploads stay fast on mobile networks */
-function compressPhoto(file) {
-  return createImageBitmap(file).then(bmp => {
-    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
-    const w = Math.max(1, Math.round(bmp.width * scale));
-    const h = Math.max(1, Math.round(bmp.height * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
-    return new Promise(res => {
-      canvas.toBlob(
-        b => res(b ? new File([b], file.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg', { type: 'image/jpeg' }) : file),
-        'image/jpeg', 0.82
-      );
-    });
-  }).catch(() => file);
-}
-
-/* POST already-compressed blobs to the site API (R2). Returns
-   [{name,url}] with absolute URLs, or throws — callers fall back, never block. */
-async function uploadBlobs(blobs) {
-  const fd = new FormData();
-  blobs.forEach(f => fd.append('photos', f, f.name));
-  const r = await fetch('/api/upload', { method: 'POST', body: fd });
-  if (!r.ok) throw new Error('upload failed: ' + r.status);
-  const data = await r.json();
-  if (!data.files || !data.files.length) throw new Error('upload empty');
-  return data.files.map(f => ({ name: f.name, url: new URL(f.url, location.origin).href }));
-}
-
-submitBtn.addEventListener('click', async function(e) {
+submitBtn.addEventListener('click', function(e) {
   e.preventDefault();
   const btn = this;
   const box = btn.closest('.contact-form-body');
@@ -1206,77 +1140,27 @@ submitBtn.addEventListener('click', async function(e) {
 
   const channel = currentChannel();
 
-  // R2 upload is fallback-only: WhatsApp tries the native share sheet first
-  // (instant, no upload). Uploads back the wa.me / Email fallbacks with
-  // view-links, and archive photos for the parked email backend.
-  // Any failure degrades to filenames — never blocks the quote.
-  let photoLinks = [];
-  let compressedBlobs = [];
-  async function ensureCompressed() {
-    if (!compressedBlobs.length && photoFiles.length) {
-      try { compressedBlobs = await Promise.all(photoFiles.map(compressPhoto)); }
-      catch (err) { compressedBlobs = []; }
-    }
-    return compressedBlobs;
-  }
-  async function ensureUpload() {
-    if (photoLinks.length || !photoFiles.length) return;
-    await ensureCompressed();
-    if (!compressedBlobs.length) return;
-    btn.textContent = 'Uploading photos…';
-    btn.disabled = true;
-    try { photoLinks = await uploadBlobs(compressedBlobs); }
-    catch (err) { photoLinks = []; }
-    btn.disabled = false;
-  }
-
-  // Build template message (wa.me / mailto are text-only and can't attach
-  // files — photos travel as R2 links, or filenames if upload failed).
-  const buildMsg = () => {
-    const lines = [
-      'QUOTE REQUEST - KorckAlan Plumbing Works',
-      '--------------------------',
-      'Issue: ' + orDash(data.message)
-    ];
-    if (photoLinks.length) {
-      lines.push('Photos: ' + photoLinks.map(f => f.url).join(', '));
-    } else if (photoFiles.length) {
-      lines.push('Photos (' + photoFiles.length + ') - to follow: ' + photoFiles.map(f => f.name).join(', '));
-    }
-    lines.push('Name: ' + orDash(data.name), 'Phone: ' + orDash(data.phone), 'Area: ' + orDash(data.location));
-    if (data.service) lines.push('Service: ' + data.service);
-    if (data.email) lines.push('Email: ' + data.email);
-    return lines.join('\n');
-  };
+  // Build template message (wa.me / mailto are text-only).
+  const msg = [
+    'QUOTE REQUEST - KorckAlan Plumbing Works',
+    '--------------------------',
+    'Issue: ' + orDash(data.message),
+    'Name: ' + orDash(data.name),
+    'Phone: ' + orDash(data.phone),
+    'Area: ' + orDash(data.location),
+    data.service ? 'Service: ' + data.service : null,
+    data.email ? 'Email: ' + data.email : null
+  ].filter(Boolean).join('\n');
 
   if (channel === 'whatsapp') {
-    // Prefer the native share sheet: photos + text arrive as real WhatsApp
-    // images with no upload wait. Falls back to wa.me (with R2 links).
-    let shared = false;
-    if (photoFiles.length && navigator.canShare) {
-      await ensureCompressed();
-      if (compressedBlobs.length) {
-        try {
-          const shareFiles = compressedBlobs.map((b, i) => new File([b], b.name || ('photo-' + (i + 1) + '.jpg'), { type: b.type || 'image/jpeg' }));
-          if (navigator.canShare({ files: shareFiles })) {
-            await navigator.share({ files: shareFiles, text: buildMsg() });
-            shared = true;
-          }
-        } catch (err) { shared = false; }
-      }
-    }
-    if (!shared) {
-      await ensureUpload();
-      window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(buildMsg()), '_blank', 'noopener');
-    }
-    btn.textContent = shared ? '✓ Shared — pick WhatsApp to send' : (photoLinks.length ? '✓ Opening WhatsApp — photos linked inside' : '✓ Opening WhatsApp…');
+    // wa.me-direct: the chat with the business number opens with the
+    // template prefilled — no contact picker. Photos are attached manually
+    // in the chat (see hint above the form button).
+    window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+    btn.textContent = '✓ Opening WhatsApp…';
     btn.style.background = '#1a6b3c';
     setTimeout(resetBtn, 4500);
   } else if (channel === 'email') {
-    // Direct mailto draft (backend email parked until Email Service is on).
-    // Photos travel as R2 links inside the message body.
-    await ensureUpload();
-    const msg = buildMsg();
     const subject = 'Quote Request' + (data.name ? ' — ' + data.name : '') + (data.location ? ' (' + data.location + ')' : '');
     window.location.href = 'mailto:' + BIZ_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(msg);
     btn.textContent = '✓ Opening your email app…';
